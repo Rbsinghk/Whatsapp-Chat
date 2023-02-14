@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="style.css">
+	<script src="/socket.io/socket.io.js"></script>
+	<script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+	<title>Chat Appp</title>
+</head>
+
+<body>
+	<nav>
+		<img class="logo" src="w.png" alt="">
+	</nav>
+	<div class="parent">
+		<div class="container" id="container">
+
+		</div>
+		<div class="peopleContainer">
+
+		</div>
+	</div>
+	<div class="send">
+		<form action="#" id="send-container">
+			<input type="text" name="messageInp" id="messageInp">
+			<button class="btn">Send</button>
+		</form>
+	</div>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+	<script>
+
+		$.ajax({
+			type: 'GET',
+			url: '/getUser',
+			success: (data) => {
+				debugger
+				console.log(data)
+				var html = "";
+				for (i = 0; i < data.length; i++) {
+					html += ` <tr><td><button class="btn" id="${data[i].name}" onclick="event.preventDefault(); getData(this.id)">  ${data[i].name}   </button></td></tr>`
+				}
+				$(".peopleContainer").append(html)
+			},
+			error: (error) => {
+				alert('First You have to Login')
+				window.location = "/login"
+			}
+		})
+		function getData(id) {
+			localStorage.setItem("touser", id)
+			console.log(id)
+			$.ajax({
+				type: 'POST',
+				url: `/getChatData`,
+				data: { from: localStorage.getItem('name'), toUser: localStorage.getItem('touser') },
+				dataType: "json",
+				success: (data) => {
+					document.getElementById('container').innerHTML=""
+					console.log(data)
+					var html = "";
+					for (i = 0; i < data.length; i++) {
+						if (data[i].from == localStorage.getItem('name')) {
+							html += ` <div class="message left">
+									You : ${data[i].message}
+								</div>`
+						} else {
+							html += ` <div class="message right">
+									from : ${data[i].message}
+								</div>`
+						}
+					}
+					$(".container").append(html)
+				}
+			})
+		}
+	</script>
+	<script>
+		var name = localStorage.getItem('name')
+		var socket = io();
+		socket.emit('joining msg', name);
+		$('form').submit(function (e) {
+			e.preventDefault();            // will prevent page reloading
+			socket.emit('chat message', (name + ':  ' + $('#messageInp').val()) + ': ' + localStorage.getItem('touser'));
+			$('.container').append($('<div class="message left">').text('You:  ' + $('#messageInp').val()));
+			$('#messageInp').val('');
+			return false;
+		});
+		socket.on('chat message', function (msg) {
+			debugger
+			$('.container').append($('<div class="message right">').text(msg));
+		});
+	</script>
+</body>
+
+</html>
